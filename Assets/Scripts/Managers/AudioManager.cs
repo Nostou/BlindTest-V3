@@ -18,7 +18,7 @@ namespace Managers
             Instance = this;
         }
 
-        public void SetAudioInfos(string[] audioFiles)
+        public List<AudioInfo> CreateAudioInfos(string[] audioFiles)
         {
             audioInfos.Clear();
             
@@ -28,13 +28,12 @@ namespace Managers
                 audioInfos.Add(new AudioInfo
                 {
                     Author = fileName.Split("_")[0],
-                    Title = fileName,
-                    Path = af
+                    Title = fileName
                 });
             }
         
             Debug.Log($"[AudioManager] Found {audioInfos.Count} audio files");;
-            GameManager.Instance.RegisterPlayers(audioInfos);
+            return audioInfos;
         }
 
         public void StartBlindTest()
@@ -87,7 +86,6 @@ namespace Managers
         {
             public string Author;
             public string Title;
-            public string Path;
         }
     }
 }

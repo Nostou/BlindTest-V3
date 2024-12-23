@@ -22,14 +22,25 @@ namespace Managers
         {
             players.Clear();
             
-            BTPlayer currentPlayer = null;
-            foreach (AudioManager.AudioInfo ai in audioInfos)
+            BTPlayer currentPlayer = CreatePlayer(audioInfos[0].Author);
+            for (int i = 1; i < audioInfos.Count; i++)
             {
-                if (currentPlayer != null && currentPlayer.Name.Equals(ai.Author)) continue;
-                currentPlayer = new BTPlayer(ai.Author);
-                players.Add(currentPlayer);
+                if (currentPlayer.Name.Equals(audioInfos[i].Author))
+                {
+                    currentPlayer.MusicCount++;
+                    continue;
+                }
+                
+                currentPlayer = CreatePlayer(audioInfos[i].Author);
                 Debug.Log($"[GameManager] Register {currentPlayer.Name}");
             }
+        }
+
+        private BTPlayer CreatePlayer(string playerName)
+        {
+            BTPlayer player = new BTPlayer(playerName);
+            players.Add(player);
+            return player;
         }
     }
     
@@ -38,11 +49,13 @@ namespace Managers
     {
         public string Name;
         public int Score;
+        public int MusicCount;
         
         public BTPlayer(string name)
         {
             Name = name;
             Score = 0;
+            MusicCount = 1;
         }
     }
 }

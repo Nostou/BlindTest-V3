@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Managers;
@@ -7,11 +8,11 @@ using UnityEngine.UI;
 
 public class FileBrowser : MonoBehaviour
 {
-    [SerializeField] private Button btnOpen;
+    [SerializeField] private Button btnSelect;
 
     private void Awake()
     {
-        btnOpen.onClick.AddListener(OpenFileBrowser);
+        btnSelect.onClick.AddListener(OpenFileBrowser);
     }
     
     private void OpenFileBrowser()
@@ -36,6 +37,10 @@ public class FileBrowser : MonoBehaviour
             Debug.Log("[FileBrowser] No audio files found.");
             return;
         }
-        AudioManager.Instance.SetAudioInfos(audioFiles);
+        
+        UIManager.Instance.GetMenuStart().SetLoadInfo(selectedPath, audioFiles.Length);
+        List<AudioManager.AudioInfo> audioInfos = AudioManager.Instance.CreateAudioInfos(audioFiles);
+        GameManager.Instance.RegisterPlayers(audioInfos);
+        UIManager.Instance.GetMenuStart().RefreshPlayerList();
     }
 }
