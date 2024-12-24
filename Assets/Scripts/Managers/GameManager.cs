@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Attributes;
+using ScriptableObjects;
 using UnityEngine;
 
 namespace Managers
@@ -8,10 +9,16 @@ namespace Managers
     public class GameManager : MonoBehaviour
     {
         public List<BTPlayer> Players => players;
+        public BTSettingsSO GetCurrentSettings() => currentSettings;
+        public BTSettingsSO GetDefaultSettings() => defaultSettings;
         
         public static GameManager Instance { get; private set; }
 
+        [SerializeField] private BTSettingsSO currentSettings;
+        [SerializeField] private BTSettingsSO defaultSettings;
         [SerializeField, ReadOnly] private List<BTPlayer> players = new List<BTPlayer>();
+        
+        private int currentSongIndex;
 
         private void Awake()
         {

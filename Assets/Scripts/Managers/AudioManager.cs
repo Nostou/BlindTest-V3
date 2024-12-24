@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Attributes;
 using UnityEngine;
+using UnityEngine.Networking;
 using Random = UnityEngine.Random;
 
 namespace Managers
@@ -11,13 +13,54 @@ namespace Managers
     {
         public static AudioManager Instance { get; private set; }
 
+        [SerializeField] private AudioSource audioSource;
         [SerializeField, ReadOnly] private List<AudioInfo> audioInfos = new List<AudioInfo>();
 
+        private AudioClip currentAudioClip;
+        private int currentSongIndex = -1;
+        private AudioInfo currentAudioInfo;
+        
         private void Awake()
         {
             Instance = this;
         }
 
+        public void StartBlindTest()
+        {
+            ShuffleSongs(GameManager.Instance.GetCurrentSettings().MusicSmartRandom);
+            NextSong();
+        }
+
+        public void NextSong()
+        {
+            currentSongIndex++;
+            currentAudioInfo = audioInfos[currentSongIndex];
+            StartCoroutine(PlaySong());
+        }
+
+        private IEnumerator PlaySong()
+        {
+            AudioType audioType = Path.GetExtension(currentAudioInfo.Path) switch
+            {
+                ".mp3" => AudioType.MPEG,
+                ".ogg" => AudioType.OGGVORBIS,
+                _ => AudioType.WAV
+            };
+            UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip("file://" + currentAudioInfo.Path, audioType);
+
+            yield return uwr.SendWebRequest();
+
+            if (uwr.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"Failed to load audio file: {uwr.error}");
+                yield break;
+            }
+            
+            currentAudioClip = DownloadHandlerAudioClip.GetContent(uwr);
+            audioSource.clip = currentAudioClip;
+            audioSource.Play();
+        }
+        
         public List<AudioInfo> CreateAudioInfos(string[] audioFiles)
         {
             audioInfos.Clear();
@@ -28,17 +71,13 @@ namespace Managers
                 audioInfos.Add(new AudioInfo
                 {
                     Author = fileName.Split("_")[0],
-                    Title = fileName
+                    Title = fileName,
+                    Path = af
                 });
             }
         
             Debug.Log($"[AudioManager] Found {audioInfos.Count} audio files");;
             return audioInfos;
-        }
-
-        public void StartBlindTest()
-        {
-            ShuffleSongs(false);
         }
 
         private void ShuffleSongs(bool isTrueRandom)
@@ -86,6 +125,7 @@ namespace Managers
         {
             public string Author;
             public string Title;
+            public string Path;
         }
     }
 }
