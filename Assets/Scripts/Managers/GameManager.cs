@@ -18,14 +18,16 @@ namespace Managers
         [SerializeField] private BTSettingsSO defaultSettings;
         [SerializeField, ReadOnly] private List<BTPlayer> players = new List<BTPlayer>();
         
-        private int currentSongIndex;
-
         private void Awake()
         {
             Instance = this;
-            FileBrowser.Instance.OnFolderSelected += () => players.Clear();
         }
 
+        private void Start()
+        {
+            FileBrowser.Instance.OnFolderSelected += () => players.Clear();
+        }    
+        
         public void RegisterPlayers(List<AudioManager.AudioInfo> audioInfos)
         {
             BTPlayer currentPlayer = CreatePlayer(audioInfos[0].Author);

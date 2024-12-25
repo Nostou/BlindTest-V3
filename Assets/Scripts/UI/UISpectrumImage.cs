@@ -1,4 +1,5 @@
-﻿using DG.Tweening;
+﻿using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,6 +8,11 @@ namespace UI
     public class UISpectrumImage : MonoBehaviour
     {
         [SerializeField] private Image fillImage;
+
+        private void OnEnable()
+        {
+            fillImage.fillAmount = 0;
+        }
 
         private void Awake()
         {

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using Managers;
@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace UI
 {
-    public class UIMenuSong : MonoBehaviour
+    public class UIMenuMusic : MonoBehaviour
     {
         [Header("UI")]
         [SerializeField] private ButtonLongPressListener btnNext;
@@ -24,18 +24,32 @@ namespace UI
         [SerializeField] private float barHeight = 500;
         [SerializeField] private float spectrumScale = 100;
         [SerializeField] private int indexOffset = 10;
+        [SerializeField, Min(0)] private float fillDuration = 0.05f;
         [SerializeField] private UISpectrumImage barPrefab;
         [SerializeField] private Transform barParent;
         [SerializeField] private List<UISpectrumImage> barList = new List<UISpectrumImage>();
         
         private float[] spectrum = new float[512];
+        private bool isPlaying;
         
         private void OnEnable()
         {
             sliderVolume.value = 50;
+            txtMusicCount.text = $"{AudioManager.Instance.MusicIndex + 1}/{AudioManager.Instance.MusicCount}";
+            UpdateTxtTimer(GameManager.Instance.GetCurrentSettings().Time);
+            fillCircle.DOKill();
+            fillCircle.fillAmount = 0;
         }
 
-        private void Awake()
+        private void OnDisable()
+        {
+            foreach (UISpectrumImage bar in barList)
+            {
+                bar.DOComplete();
+            }
+        }
+
+        private void Start()
         {
             btnNext.OnLongPress += () =>
             {
@@ -43,15 +57,26 @@ namespace UI
                 AudioManager.Instance.ToResult();
             };
             sliderVolume.onValueChanged.AddListener(AudioManager.Instance.SetVolume);
-            
-            AudioManager.Instance.OnSongLoaded += UpdateMusicCount;
-            AudioManager.Instance.OnSongStarted += FillCircle;
-            AudioManager.Instance.OnSongTick += UpdateTxtTimer;
+
+            AudioManager.Instance.OnMusicStarted += () =>
+            {
+                isPlaying = true;
+                FillCircle();
+            };
+            AudioManager.Instance.OnMusicTick += UpdateTxtTimer;
+            AudioManager.Instance.OnMusicEnded += () =>
+            {
+                foreach (UISpectrumImage bar in barList)
+                {
+                    bar.Fill(0, fillDuration);
+                }
+                isPlaying = false;
+            };
         }
 
         private void Update()
         {
-            UpdateSpectrum();
+            if (isPlaying) UpdateSpectrum();
         }
 
         [ContextMenu("CreateBars")]
@@ -77,17 +102,14 @@ namespace UI
         private void UpdateSpectrum()
         {
             AudioListener.GetSpectrumData(spectrum, 0, FFTWindow.Hamming);
+            float volume = Mathf.Clamp(AudioManager.Instance.Volume, 0.01f, 1.0f);
 
             for (int i = 0; i < nbBars; i++)
             {
                 int index = i + indexOffset;
-                barList[i].Fill(spectrum[index]*spectrumScale, 0.05f);
+                float value = spectrum[index] / volume * spectrumScale;
+                barList[i].Fill(value, fillDuration);
             }
-        }
-
-        private void UpdateMusicCount(int songIndex, int totalSongs)
-        {
-            txtMusicCount.text = $"{songIndex + 1}/{totalSongs}";
         }
 
         private void FillCircle()

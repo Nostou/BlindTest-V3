@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Managers;
 using SFB;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,10 +15,16 @@ public class FileBrowser : MonoBehaviour
     public static FileBrowser Instance { get; private set; }
     
     [SerializeField] private Button btnSelect;
+    [SerializeField] private TMP_Text txtFileLoaded;
+    [SerializeField] private TMP_Text txtPath;
 
     private void Awake()
     {
         Instance = this;
+    }
+
+    private void Start()
+    {
         btnSelect.onClick.AddListener(OpenFileBrowser);
     }
     
@@ -40,6 +47,8 @@ public class FileBrowser : MonoBehaviour
             .Where(file => file.EndsWith(".mp3") || file.EndsWith(".ogg") || file.EndsWith(".wav"))
             .ToArray();
         
+        SetLoadInfo(selectedPath, audioFiles.Length);
+        
         if (audioFiles.Length == 0)
         {
             Debug.Log("[FileBrowser] No audio files found.");
@@ -48,6 +57,18 @@ public class FileBrowser : MonoBehaviour
         
         List<AudioManager.AudioInfo> audioInfos = AudioManager.Instance.CreateAudioInfos(audioFiles);
         GameManager.Instance.RegisterPlayers(audioInfos);
-        UIManager.Instance.GetMenuStart().SetLoadInfo(selectedPath, audioFiles.Length);
+        UIManager.Instance.GetMenuStart().RefreshPlayerList();
+    }
+    
+    private void SetLoadInfo(string path, int nbFiles)
+    {
+        txtFileLoaded.text = nbFiles switch
+        {
+            0 => "No files loaded",
+            1 => "Loaded 1 file",
+            _ => $"Loaded {nbFiles} files"
+        };
+
+        txtPath.text = path;
     }
 }

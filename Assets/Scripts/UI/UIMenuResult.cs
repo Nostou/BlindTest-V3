@@ -11,15 +11,15 @@ namespace UI
         
         private void OnEnable()
         {
-            sliderVolume.value = 20;
+            sliderVolume.value = 15;
         }
 
-        private void Awake()
+        private void Start()
         {
             btnNext.OnLongPress += () =>
             {
-                UIManager.Instance.LoadMenu(MenuType.Song);
-                AudioManager.Instance.NextSong();
+                UIManager.Instance.LoadMenu(MenuType.Music);
+                AudioManager.Instance.NextMusic();
             };
             sliderVolume.onValueChanged.AddListener(AudioManager.Instance.SetVolume);
         }

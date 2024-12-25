@@ -12,8 +12,6 @@ namespace UI
         [SerializeField] private ButtonLongPressListener btnStart;
         
         [Header("Setup")]
-        [SerializeField] private TMP_Text txtFileLoaded;
-        [SerializeField] private TMP_Text txtPath;
         [SerializeField] private TMP_Text txtNbPlayers;
         [SerializeField] private UIPlayerStart playerStartGO;
         [SerializeField] private Transform playerStartParent;
@@ -32,7 +30,7 @@ namespace UI
         [SerializeField] private Toggle toggleRankingsSecretMode;
         [SerializeField] private ButtonLongPressListener btnReset;
 
-        private void Awake()
+        private void Start()
         {
             btnStart.OnLongPress += OnClickStart;
             sliderTime.onValueChanged.AddListener(OnSliderTimeChanged);
@@ -44,7 +42,7 @@ namespace UI
             ifStreakFreeze.onEndEdit.AddListener((s) => ClampInput(ifStreakFreeze, 0 , 1000));
             btnReset.OnLongPress += ResetSettings;
             
-            FileBrowser.Instance.OnFolderSelected += ResetPlayerList;
+            FileBrowser.Instance.OnFolderSelected += ResetAll;
         }
 
         private int GetValue(TMP_InputField inputField)
@@ -52,21 +50,7 @@ namespace UI
             return int.TryParse(inputField.text, out int value) ? value : 0;
         }
 
-        public void SetLoadInfo(string path, int nbFiles)
-        {
-            txtFileLoaded.text = nbFiles switch
-            {
-                0 => "No files loaded",
-                1 => "Loaded 1 file",
-                _ => $"Loaded {nbFiles} files"
-            };
-
-            txtPath.gameObject.SetActive(true);
-            txtPath.text = path;
-            RefreshPlayerList();
-        }
-
-        private void RefreshPlayerList()
+        public void RefreshPlayerList()
         {
             foreach (BTPlayer player in GameManager.Instance.Players)
             {
@@ -75,9 +59,10 @@ namespace UI
             }
 
             txtNbPlayers.text = $"Players ({GameManager.Instance.Players.Count})";
+            btnStart.SetInteractable(true);
         }
 
-        private void ResetPlayerList()
+        private void ResetAll()
         {
             while (playerStartParent.childCount > 0)
             {
@@ -85,12 +70,13 @@ namespace UI
             }
             
             txtNbPlayers.text = "Players (0)";
+            btnStart.SetInteractable(false);
         }
         
         private void OnClickStart()
         {
             SaveSettings();
-            UIManager.Instance.LoadMenu(MenuType.Song);
+            UIManager.Instance.LoadMenu(MenuType.Music);
             AudioManager.Instance.StartBlindTest();
         }
 

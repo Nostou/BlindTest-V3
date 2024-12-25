@@ -18,6 +18,11 @@ namespace UI {
 
         private Button button;
 
+        private void OnEnable()
+        {
+            fillImage.fillAmount = 0;
+        }
+
         private void Awake()
         {
             button = GetComponent<Button>();
