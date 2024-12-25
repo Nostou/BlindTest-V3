@@ -29,12 +29,16 @@ namespace UI {
             StartCoroutine(PressCoroutine());
         }
 
-
         public void OnPointerUp(PointerEventData eventData)
         {
             isPointerDown = false;
             isLongPressed = false;
             if (fillImage) fillImage.fillAmount = 0;
+        }
+
+        public void SetInteractable(bool state)
+        {
+            button.interactable = state;
         }
 
         private IEnumerator PressCoroutine()

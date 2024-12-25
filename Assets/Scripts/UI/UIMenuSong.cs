@@ -1,10 +1,23 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
+using DG.Tweening;
+using Managers;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace UI
 {
     public class UIMenuSong : MonoBehaviour
     {
+        [Header("UI")]
+        [SerializeField] private ButtonLongPressListener btnNext;
+        [SerializeField] private Slider sliderVolume;
+        [SerializeField] private TMP_Text txtMusicCount;
+        [SerializeField] private Image fillCircle;
+        [SerializeField] private TMP_Text txtTimer;
+        
+        [Header("Spectrum")]
         [SerializeField] private int nbBars = 64;
         [SerializeField] private float radius = 5f;
         [SerializeField] private float barWidth = 100;
@@ -13,9 +26,28 @@ namespace UI
         [SerializeField] private int indexOffset = 10;
         [SerializeField] private UISpectrumImage barPrefab;
         [SerializeField] private Transform barParent;
-
         [SerializeField] private List<UISpectrumImage> barList = new List<UISpectrumImage>();
-        private float[] spectrum = new float[1024];
+        
+        private float[] spectrum = new float[512];
+        
+        private void OnEnable()
+        {
+            sliderVolume.value = 50;
+        }
+
+        private void Awake()
+        {
+            btnNext.OnLongPress += () =>
+            {
+                UIManager.Instance.LoadMenu(MenuType.Result);
+                AudioManager.Instance.ToResult();
+            };
+            sliderVolume.onValueChanged.AddListener(AudioManager.Instance.SetVolume);
+            
+            AudioManager.Instance.OnSongLoaded += UpdateMusicCount;
+            AudioManager.Instance.OnSongStarted += FillCircle;
+            AudioManager.Instance.OnSongTick += UpdateTxtTimer;
+        }
 
         private void Update()
         {
@@ -51,6 +83,21 @@ namespace UI
                 int index = i + indexOffset;
                 barList[i].Fill(spectrum[index]*spectrumScale, 0.05f);
             }
+        }
+
+        private void UpdateMusicCount(int songIndex, int totalSongs)
+        {
+            txtMusicCount.text = $"{songIndex + 1}/{totalSongs}";
+        }
+
+        private void FillCircle()
+        {
+            fillCircle.DOFillAmount(1, GameManager.Instance.GetCurrentSettings().Time).SetEase(Ease.Linear);
+        }
+        
+        private void UpdateTxtTimer(int duration)
+        {
+            txtTimer.text = $"{duration}";
         }
     }
 }

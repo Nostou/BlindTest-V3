@@ -3,22 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Attributes;
+using DG.Tweening;
+using Extensions;
 using UnityEngine;
 using UnityEngine.Networking;
-using Random = UnityEngine.Random;
 
 namespace Managers
 {
     public class AudioManager : MonoBehaviour
     {
+        public Action<int, int> OnSongLoaded;
+        public Action OnSongStarted;
+        public Action<int> OnSongTick;
+        public Action OnSongEnded;
+        
         public static AudioManager Instance { get; private set; }
 
         [SerializeField] private AudioSource audioSource;
+        [SerializeField] private float fadeDuration = 0.5f;
         [SerializeField, ReadOnly] private List<AudioInfo> audioInfos = new List<AudioInfo>();
 
-        private AudioClip currentAudioClip;
         private int currentSongIndex = -1;
         private AudioInfo currentAudioInfo;
+
+        private Coroutine playSongCoroutine;
         
         private void Awake()
         {
@@ -35,10 +43,10 @@ namespace Managers
         {
             currentSongIndex++;
             currentAudioInfo = audioInfos[currentSongIndex];
-            StartCoroutine(PlaySong());
+            StartCoroutine(PrepareMusic());
         }
 
-        private IEnumerator PlaySong()
+        private IEnumerator PrepareMusic()
         {
             AudioType audioType = Path.GetExtension(currentAudioInfo.Path) switch
             {
@@ -56,9 +64,56 @@ namespace Managers
                 yield break;
             }
             
-            currentAudioClip = DownloadHandlerAudioClip.GetContent(uwr);
-            audioSource.clip = currentAudioClip;
+            OnSongLoaded?.Invoke(currentSongIndex, audioInfos.Count);
+            
+            if (audioSource.isPlaying) yield return FadeOut();
+            audioSource.clip = DownloadHandlerAudioClip.GetContent(uwr);
+            playSongCoroutine = StartCoroutine(PlaySong());
+        }
+        
+        private IEnumerator PlaySong()
+        {
+            OnSongStarted?.Invoke();
+            StartCoroutine(FadeIn(50));
+
+            int duration = GameManager.Instance.GetCurrentSettings().Time;
+
+            while (duration > 0)
+            {
+                OnSongTick?.Invoke(duration);
+                yield return new WaitForSeconds(1);
+                duration--;
+            }
+            
+            yield return StartCoroutine(FadeOut());
+            OnSongEnded?.Invoke();
+        }
+
+        public void ToResult()
+        {
+            if (playSongCoroutine != null) StopCoroutine(playSongCoroutine);
+            StartCoroutine(FadeIn(20));
+        }
+
+        private IEnumerator FadeIn(float target)
+        {
+            audioSource.volume = 0;
             audioSource.Play();
+            Tween fadeTween = audioSource.DOFade(target, fadeDuration);
+            yield return fadeTween.WaitForCompletion();
+        }
+
+        private IEnumerator FadeOut()
+        {
+            Tween fadeTween = audioSource.DOFade(0, fadeDuration);
+            yield return fadeTween.WaitForCompletion();
+            audioSource.Pause();
+        }
+        
+        public void SetVolume(float volume)
+        {
+            volume = Mathf.Clamp(volume, 0, 1);
+            audioSource.volume = volume;
         }
         
         public List<AudioInfo> CreateAudioInfos(string[] audioFiles)
@@ -80,42 +135,41 @@ namespace Managers
             return audioInfos;
         }
 
-        private void ShuffleSongs(bool isTrueRandom)
+        private void ShuffleSongs(bool isSmartRandom)
         {
-            //True shuffle
-            for (int i = 0; i < audioInfos.Count; i++)
-            {
-                int rdm = Random.Range(0, audioInfos.Count);
-                (audioInfos[rdm], audioInfos[i]) = (audioInfos[i], audioInfos[rdm]);
-            }
+            audioInfos.Shuffle();
 
-            if (isTrueRandom) return;
-            //Make sure each player has one song in the end
-            List<BTPlayer> players = GameManager.Instance.Players;
-            foreach (BTPlayer player in players)
+            if (!isSmartRandom) return;
+            List<AudioInfo> endList = new List<AudioInfo>();
+            foreach (BTPlayer player in GameManager.Instance.Players)
             {
-                for (int i = audioInfos.Count-1; i >= 0; i--)
+                for (int i = 0; i < audioInfos.Count; i++)
                 {
-                    AudioInfo ai = audioInfos[i];
-                    if (player.Name.Equals(ai.Author))
+                    if (audioInfos[i].Author.Equals(player.Name))
                     {
-                        audioInfos.Remove(ai);
-                        audioInfos.Add(ai);
+                        endList.Add(audioInfos[i]);
+                        audioInfos.RemoveAt(i);
                         break;
                     }
                 }
             }
             
-            //Avoid 3 songs in a row from the same player
-            for (int i = 0; i < audioInfos.Count-2; i++)
+            endList.Shuffle();
+            audioInfos.AddRange(endList);
+            
+            for (int i = 0; i < audioInfos.Count - 2; i++)
             {
                 AudioInfo ai1 = audioInfos[i];
                 AudioInfo ai2 = audioInfos[i+1];
                 AudioInfo ai3 = audioInfos[i+2];
-                if (ai1.Author.Equals(ai2.Author) && ai2.Author.Equals(ai3.Author))
+
+                if (!ai1.Author.Equals(ai2.Author) || !ai2.Author.Equals(ai3.Author)) continue;
+                
+                for (int j = i + 3; j < audioInfos.Count; j++)
                 {
-                    int rdm = Random.Range(0, audioInfos.Count-players.Count);
-                    (audioInfos[i+1], audioInfos[i+2]) = (audioInfos[i+2], audioInfos[i+1]);
+                    if (audioInfos[j].Author.Equals(ai1.Author)) continue;
+                    (audioInfos[i+2], audioInfos[j]) = (audioInfos[j], audioInfos[i+2]);
+                    break;
                 }
             }
         }

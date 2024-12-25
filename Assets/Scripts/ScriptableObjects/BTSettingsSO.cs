@@ -5,7 +5,7 @@ namespace ScriptableObjects
     [CreateAssetMenu(fileName = "BTSettings", menuName = "Data/BTSettings")]
     public class BTSettingsSO : ScriptableObject
     {
-        public float Time;
+        public int Time;
         public int ScoreGolden;
         public int ScoreFirst;
         public int ScoreSecond;

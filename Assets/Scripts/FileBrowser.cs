@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,15 +9,22 @@ using UnityEngine.UI;
 
 public class FileBrowser : MonoBehaviour
 {
+    public Action OnFolderSelected;
+    
+    public static FileBrowser Instance { get; private set; }
+    
     [SerializeField] private Button btnSelect;
 
     private void Awake()
     {
+        Instance = this;
         btnSelect.onClick.AddListener(OpenFileBrowser);
     }
     
     private void OpenFileBrowser()
     {
+        OnFolderSelected?.Invoke();
+        
         string[] paths = StandaloneFileBrowser.OpenFolderPanel("Select audio folder", "", false);
         
         if (paths.Length == 0 || string.IsNullOrEmpty(paths[0]))
@@ -28,7 +36,7 @@ public class FileBrowser : MonoBehaviour
         string selectedPath = paths[0];
         Debug.Log($"[FileBrowser] Folder selected: {selectedPath}");
         
-        string[] audioFiles = Directory.GetFiles(selectedPath, "*.*", SearchOption.AllDirectories)
+        string[] audioFiles = Directory.GetFiles(selectedPath, "*.*", SearchOption.TopDirectoryOnly)
             .Where(file => file.EndsWith(".mp3") || file.EndsWith(".ogg") || file.EndsWith(".wav"))
             .ToArray();
         
@@ -38,9 +46,8 @@ public class FileBrowser : MonoBehaviour
             return;
         }
         
-        UIManager.Instance.GetMenuStart().SetLoadInfo(selectedPath, audioFiles.Length);
         List<AudioManager.AudioInfo> audioInfos = AudioManager.Instance.CreateAudioInfos(audioFiles);
         GameManager.Instance.RegisterPlayers(audioInfos);
-        UIManager.Instance.GetMenuStart().RefreshPlayerList();
+        UIManager.Instance.GetMenuStart().SetLoadInfo(selectedPath, audioFiles.Length);
     }
 }

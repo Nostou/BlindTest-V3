@@ -23,12 +23,11 @@ namespace Managers
         private void Awake()
         {
             Instance = this;
+            FileBrowser.Instance.OnFolderSelected += () => players.Clear();
         }
 
         public void RegisterPlayers(List<AudioManager.AudioInfo> audioInfos)
         {
-            players.Clear();
-            
             BTPlayer currentPlayer = CreatePlayer(audioInfos[0].Author);
             for (int i = 1; i < audioInfos.Count; i++)
             {

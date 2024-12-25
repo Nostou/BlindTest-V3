@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using ScriptableObjects;
 using UI;
 using UnityEngine;
 
@@ -16,6 +15,8 @@ namespace Managers
     public class UIManager : MonoBehaviour
     {
         public UIMenuStart GetMenuStart() => uiMenuStart;
+        public UIMenuSong GetMenuSong() => uiMenuSong;
+        public UIMenuResult GetMenuResult() => uiMenuResult;
 
         public static UIManager Instance { get; private set; }
 

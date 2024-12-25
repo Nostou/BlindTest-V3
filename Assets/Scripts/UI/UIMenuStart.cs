@@ -32,7 +32,7 @@ namespace UI
         [SerializeField] private Toggle toggleRankingsSecretMode;
         [SerializeField] private ButtonLongPressListener btnReset;
 
-        private void Start()
+        private void Awake()
         {
             btnStart.OnLongPress += OnClickStart;
             sliderTime.onValueChanged.AddListener(OnSliderTimeChanged);
@@ -43,6 +43,8 @@ namespace UI
             ifStreakMax.onEndEdit.AddListener((s) => ClampInput(ifStreakMax, -1, 1000));
             ifStreakFreeze.onEndEdit.AddListener((s) => ClampInput(ifStreakFreeze, 0 , 1000));
             btnReset.OnLongPress += ResetSettings;
+            
+            FileBrowser.Instance.OnFolderSelected += ResetPlayerList;
         }
 
         private int GetValue(TMP_InputField inputField)
@@ -61,9 +63,10 @@ namespace UI
 
             txtPath.gameObject.SetActive(true);
             txtPath.text = path;
+            RefreshPlayerList();
         }
 
-        public void RefreshPlayerList()
+        private void RefreshPlayerList()
         {
             foreach (BTPlayer player in GameManager.Instance.Players)
             {
@@ -73,6 +76,16 @@ namespace UI
 
             txtNbPlayers.text = $"Players ({GameManager.Instance.Players.Count})";
         }
+
+        private void ResetPlayerList()
+        {
+            while (playerStartParent.childCount > 0)
+            {
+                DestroyImmediate(playerStartParent.GetChild(0).gameObject);
+            }
+            
+            txtNbPlayers.text = "Players (0)";
+        }
         
         private void OnClickStart()
         {
@@ -81,10 +94,15 @@ namespace UI
             AudioManager.Instance.StartBlindTest();
         }
 
+        public void LockStart(bool state)
+        {
+            btnStart.SetInteractable(!state);
+        }
+
         private void SaveSettings()
         {
             BTSettingsSO settings = GameManager.Instance.GetCurrentSettings();
-            settings.Time = sliderTime.value * 5 + 10;
+            settings.Time = (int)(sliderTime.value * 5) + 10;
             settings.ScoreGolden = GetValue(ifScoreGolden);
             settings.ScoreFirst = GetValue(ifScoreFirst);
             settings.ScoreSecond = GetValue(ifScoreSecond);
@@ -100,7 +118,7 @@ namespace UI
         {
             //BTSettingsSO settings = Resources.Load<BTSettingsSO>("BT/DefaultSettings");
             BTSettingsSO settings = GameManager.Instance.GetDefaultSettings();
-            sliderTime.value = (settings.Time - 10) / 5;
+            sliderTime.value = (float)(settings.Time - 10) / 5;
             ifScoreGolden.text = settings.ScoreGolden.ToString();
             ifScoreFirst.text = settings.ScoreFirst.ToString();
             ifScoreSecond.text = settings.ScoreSecond.ToString();
