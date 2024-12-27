@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using Managers;
+using TMPro;
 using UnityEngine;
 
 namespace UI
@@ -7,9 +8,9 @@ namespace UI
     {
         [SerializeField] private TMP_Text txtPlayerName;
 
-        public void Init(string playerName, int nbMusic)
+        public void Init(BTPlayer btPlayer)
         {
-            txtPlayerName.text = $"{playerName} ({nbMusic})";
+            txtPlayerName.text = $"{btPlayer.Name} ({btPlayer.MusicCount})";
         }
     }
 }

@@ -55,7 +55,7 @@ namespace UI
             foreach (BTPlayer player in GameManager.Instance.Players)
             {
                 UIPlayerStart go = Instantiate(playerStartGO, playerStartParent);
-                go.Init(player.Name, player.MusicCount);
+                go.Init(player);
             }
 
             txtNbPlayers.text = $"Players ({GameManager.Instance.Players.Count})";

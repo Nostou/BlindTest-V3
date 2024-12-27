@@ -9,23 +9,19 @@ namespace UI {
     public class ButtonLongPressListener : MonoBehaviour, IPointerDownHandler, IPointerUpHandler {
 
         public Action OnLongPress;
-        
-        [SerializeField, Min(0.01f)] public float holdDuration = 0.5f;
+
+        [SerializeField] private Button button;
         [SerializeField] private Image fillImage;
+        [SerializeField, Min(0.01f)] public float holdDuration = 0.5f;
 
         private bool isPointerDown;
         private bool isLongPressed;
 
-        private Button button;
-
         private void OnEnable()
         {
             fillImage.fillAmount = 0;
-        }
-
-        private void Awake()
-        {
-            button = GetComponent<Button>();
+            isPointerDown = false;
+            isLongPressed = false;
         }
 
         public void OnPointerDown(PointerEventData eventData)

@@ -13,10 +13,7 @@ namespace UI
         private List<UIPlayerResult> gridResult = new List<UIPlayerResult>();
         //private List<BTPlayer> rewindPlayers = new List<BTPlayer>();
 
-        private void Awake()
-        {
-            CreateRankings();
-        }
+        private BTPlayer currentAuthor;
         
         private void CreateRankings()
         {
@@ -24,8 +21,22 @@ namespace UI
             {
                 UIPlayerResult uiPlayerResult = Instantiate(uiPlayerResultPrefab, uiPlayerResultParent);
                 uiPlayerResult.BTPlayer = btPlayer;
-                uiPlayerResult.UpdateUI();
                 gridResult.Add(uiPlayerResult);
+            }
+        }
+
+        public void InitRankings(string authorName)
+        {
+            if (gridResult.Count == 0) CreateRankings();
+            
+            foreach (UIPlayerResult uiPlayerResult in gridResult)
+            {
+                uiPlayerResult.InitUI();
+                if (uiPlayerResult.BTPlayer.Name.Equals(authorName))
+                {
+                    currentAuthor = uiPlayerResult.BTPlayer;
+                    uiPlayerResult.SetAuthor();
+                }
             }
         }
 
@@ -35,27 +46,27 @@ namespace UI
             foreach (UIPlayerResult uiPlayerResult in gridResult)
             {
                 BTPlayer btPlayer = uiPlayerResult.BTPlayer;
-
-                int addScore = 0;
-                if (uiPlayerResult.ResultType == ResultType.NotFound && !uiPlayerResult.UseFreeze) btPlayer.Streak = 0;
-                else if (uiPlayerResult.ResultType == ResultType.Golden) addScore = settings.ScoreGolden;
-                else if (uiPlayerResult.ResultType == ResultType.First) addScore = settings.ScoreFirst;
-                else if (uiPlayerResult.ResultType == ResultType.Second) addScore = settings.ScoreSecond;
-                
-                if (settings.StreakEnabled) addScore *= btPlayer.Streak * settings.StreakValue / 100;
-                btPlayer.Score += addScore;
+                btPlayer.Score += btPlayer.GetFutureAddScore(uiPlayerResult.ResultType);
 
                 if (uiPlayerResult.ResultType != ResultType.NotFound)
                 {
                     btPlayer.Streak++;
                     btPlayer.Streak = Mathf.Min(btPlayer.Streak, settings.StreakMax);
                 }
+                
+                else if (btPlayer != currentAuthor && !uiPlayerResult.UseFreeze) btPlayer.Streak = 0;
+                if (uiPlayerResult.UseFreeze) btPlayer.StreakFreeze--;
             }
             
             gridResult.Sort();
             for (int i = 0; i < gridResult.Count; i++)
             {
                 gridResult[i].transform.SetSiblingIndex(i);
+            }
+            
+            foreach (UIPlayerResult uiPlayerResult in gridResult)
+            {
+                uiPlayerResult.FinalUI();
             }
         }
     }

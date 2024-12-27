@@ -9,6 +9,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 namespace Managers
 {
@@ -23,6 +24,7 @@ namespace Managers
         public float Volume => audioSource.volume;
         public int MusicIndex => currentMusicIndex;
         public int MusicCount => audioInfos.Count;
+        public AudioInfo CurrentMusic => currentAudioInfo;
 
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private float fadeDuration = 0.5f;
@@ -155,41 +157,85 @@ namespace Managers
 
         private void ShuffleMusics(bool isSmartRandom)
         {
-            audioInfos.Shuffle();
-
-            if (!isSmartRandom) return;
-            List<AudioInfo> endList = new List<AudioInfo>();
-            foreach (BTPlayer player in GameManager.Instance.Players)
+            if (!isSmartRandom)
             {
-                for (int i = 0; i < audioInfos.Count; i++)
+                audioInfos.Shuffle();
+                return;
+            }
+
+            List<BTPlayer> players = GameManager.Instance.Players;
+            int nbMusicPerPlayer = audioInfos.Count / players.Count;
+            
+            Dictionary<BTPlayer, List<AudioInfo>> firstHalf = new Dictionary<BTPlayer, List<AudioInfo>>();
+            Dictionary<BTPlayer, List<AudioInfo>> secondHalf = new Dictionary<BTPlayer, List<AudioInfo>>();
+            
+            foreach (BTPlayer player in players)
+            {
+                firstHalf.Add(player, new List<AudioInfo>());
+                secondHalf.Add(player, new List<AudioInfo>());
+            }
+
+            foreach (AudioInfo audioInfo in audioInfos)
+            {
+                BTPlayer player = players.Find(p => p.Name.Equals(audioInfo.Author));
+                if (firstHalf[player].Count < (nbMusicPerPlayer-1)/2) firstHalf[player].Add(audioInfo);
+                else secondHalf[player].Add(audioInfo);
+            }
+            
+            List<AudioInfo> firstList = new List<AudioInfo>();
+            List<AudioInfo> secondList = new List<AudioInfo>();
+            
+            foreach (BTPlayer player in players)
+            {
+                firstList.AddRange(firstHalf[player]);
+                secondList.AddRange(secondHalf[player]);
+            }
+            
+            firstList.Shuffle();
+            secondList.Shuffle();
+            
+            List<AudioInfo> endList = new List<AudioInfo>();
+            foreach (BTPlayer player in players)
+            {
+                for (int i = 0; i < secondList.Count; i++)
                 {
-                    if (audioInfos[i].Author.Equals(player.Name))
+                    if (secondList[i].Author.Equals(player.Name))
                     {
-                        endList.Add(audioInfos[i]);
-                        audioInfos.RemoveAt(i);
+                        endList.Add(secondList[i]);
+                        secondList.RemoveAt(i);
                         break;
                     }
                 }
             }
-            
             endList.Shuffle();
-            audioInfos.AddRange(endList);
+            secondList.AddRange(endList);
             
-            for (int i = 0; i < audioInfos.Count - 2; i++)
+            audioInfos.Clear();
+            audioInfos.AddRange(firstList);
+            audioInfos.AddRange(secondList);
+            PreventOccurrencesInARow(audioInfos, 2);
+        }
+
+        private void PreventOccurrencesInARow(List<AudioInfo> audioList, int maxOccurrences)
+        {
+            int consecutiveCount = 1;
+            for (int i = 1; i < audioList.Count; i++) 
             {
-                AudioInfo ai1 = audioInfos[i];
-                AudioInfo ai2 = audioInfos[i+1];
-                AudioInfo ai3 = audioInfos[i+2];
+                if (audioList[i].Author.Equals(audioList[i - 1].Author)) consecutiveCount++;
+                else consecutiveCount = 1;
 
-                if (!ai1.Author.Equals(ai2.Author) || !ai2.Author.Equals(ai3.Author)) continue;
-
-                Debug.Log($"[AudioManager] Found 3 musics in a row for {ai1.Author}");
+                if (consecutiveCount <= maxOccurrences) continue;
                 
-                for (int j = i + 3; j < audioInfos.Count; j++)
+                Debug.Log($"[AudioManager] Found more than {maxOccurrences} musics in a row for {audioList[i].Author}");
+
+                for (int j = i + 1; j < audioList.Count; j++)
                 {
-                    if (audioInfos[j].Author.Equals(ai1.Author)) continue;
-                    (audioInfos[i+2], audioInfos[j]) = (audioInfos[j], audioInfos[i+2]);
-                    break;
+                    if (!audioList[j].Author.Equals(audioList[i].Author))
+                    {
+                        (audioList[i], audioList[j]) = (audioList[j], audioList[i]);
+                        consecutiveCount = 1;
+                        break;
+                    }
                 }
             }
         }
@@ -197,7 +243,7 @@ namespace Managers
         [Serializable]
         public class AudioInfo
         {
-            public string Author;
+            public string Author; //TODO: Change to BTPlayer
             public string Title;
             public string Path;
         }

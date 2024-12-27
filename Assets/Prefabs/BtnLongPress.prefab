@@ -135,8 +135,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7a7b2c3dea89e8439acc8665ce5caa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  holdDuration: 1
+  button: {fileID: 4871041715235618366}
   fillImage: {fileID: 2801455889505838913}
+  holdDuration: 1
 --- !u!1 &2429499834697878361
 GameObject:
   m_ObjectHideFlags: 0

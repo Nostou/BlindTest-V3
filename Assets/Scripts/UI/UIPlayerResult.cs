@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AYellowpaper.SerializedCollections;
 using DG.Tweening;
 using Managers;
 using TMPro;
@@ -20,16 +21,15 @@ namespace UI
     [Serializable]
     public class ColorText
     {
-        public ResultType ResultType;
         public string Text;
         public Color Color;
     }
     
-    public class UIPlayerResult : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IComparable<UIPlayerResult>
+    public class UIPlayerResult : MonoBehaviour, IComparable<UIPlayerResult>
     {
         public BTPlayer BTPlayer { get; set; }
         public bool UseFreeze => toggleFreeze.isOn;
-        public ResultType ResultType => colorTexts[index].ResultType;
+        public ResultType ResultType => resultType;
 
         [SerializeField] private TMP_Text txtRank;
         [SerializeField] private TMP_Text txtName;
@@ -39,69 +39,92 @@ namespace UI
         [SerializeField] private TMP_Text txtResult;
         [SerializeField] private Toggle toggleFreeze;
         [SerializeField] private TMP_Text txtFreeze;
-        [SerializeField] private List<ColorText> colorTexts;
+        [SerializeField] private SerializedDictionary<ResultType, ColorText> colorTexts;
 
-        private int index;
-
-        private void OnEnable()
-        {
-            index = 0;
-            toggleFreeze.isOn = false;
-            UpdateUI();
-        }
+        private ResultType resultType;
+        private bool isAuthor;
 
         private void Start()
         {
             btnResult.onClick.AddListener(() =>
             {
-                index++;
-                if (index == colorTexts.Count) index = 0;
-                UpdateUI();
+                resultType++;
+                if ((int)resultType == colorTexts.Count) resultType = 0;
+                OnResultChanged();
             });
         }
 
-        public void UpdateUI()
+        public void InitUI()
         {
-            if (BTPlayer == null) return;
+            resultType = ResultType.NotFound;
+            isAuthor = false;
             
             txtRank.text = $"{transform.GetSiblingIndex() + 1}.";
             txtName.text = BTPlayer.Name;
-
-            int futureScore = BTPlayer.GetFutureAddScore(colorTexts[index].ResultType);
-            txtScore.text = futureScore == 0 ? $"{BTPlayer.Score}" : $"{BTPlayer.Score} (+{futureScore})";
-            txtScore.color = futureScore == 0 ? Color.white : colorTexts[index].Color;
+            
+            txtScore.text = $"{BTPlayer.Score}";
+            txtScore.color = Color.white;
             
             txtStreak.text = $"{BTPlayer.Streak}";
             
-            txtResult.text = colorTexts[index].Text;
-            txtResult.color = colorTexts[index].Color;
+            txtResult.text = colorTexts[resultType].Text;
+            txtResult.color = colorTexts[resultType].Color;
+            txtResult.GetComponent<UIHoverScale>().SetHoverable(true);
             
             txtFreeze.text = $"({BTPlayer.StreakFreeze})";
-            toggleFreeze.interactable = BTPlayer.StreakFreeze > 0 && index == 0;
-            if (colorTexts[index].ResultType != ResultType.NotFound) toggleFreeze.isOn = false;
+            toggleFreeze.interactable = BTPlayer.Streak > 0 && BTPlayer.StreakFreeze > 0;
+            toggleFreeze.isOn = false;
+        }
+        
+        public void SetAuthor()
+        {
+            isAuthor = true;
+            txtName.color = Color.cyan;
+            txtResult.text = "Author";
+            txtResult.color = Color.cyan;
+            txtResult.GetComponent<UIHoverScale>().SetHoverable(false);
+            toggleFreeze.interactable = false;
         }
 
-        private void TweenText(Vector3 targetScale)
+        private void OnResultChanged()
         {
-            txtResult.transform.DOKill();
-            txtResult.transform.DOScale(targetScale, 0.2f);
+            int futureScore = BTPlayer.GetFutureAddScore(resultType);
+            txtScore.text = futureScore == 0 ? $"{BTPlayer.Score}" : $"{BTPlayer.Score} (+{futureScore})";
+            txtScore.color = futureScore == 0 ? Color.white : colorTexts[resultType].Color;
+            
+            txtResult.text = colorTexts[resultType].Text;
+            txtResult.color = colorTexts[resultType].Color;
+            
+            toggleFreeze.interactable = BTPlayer.Streak > 0 && BTPlayer.StreakFreeze > 0 && resultType == 0 && !isAuthor;
+            if (resultType != ResultType.NotFound) toggleFreeze.isOn = false;
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void FinalUI()
         {
-            TweenText(Vector3.one * 1.2f);
-        }
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            TweenText(Vector3.one);
+            txtRank.text = $"{transform.GetSiblingIndex() + 1}.";
+            
+            txtName.color = Color.white;
+            
+            txtScore.text = $"{BTPlayer.Score}";
+            txtScore.color = Color.white;
+            
+            txtStreak.text = $"{BTPlayer.Streak}";
+
+            txtResult.text = "-";
+            txtResult.color = Color.white;
+            txtResult.GetComponent<UIHoverScale>().SetHoverable(false);
+            
+            txtFreeze.text = $"({BTPlayer.StreakFreeze})";
+            toggleFreeze.interactable = false;
+            toggleFreeze.isOn = false;
         }
 
         public int CompareTo(UIPlayerResult other)
         {
-            int scoreComparison = BTPlayer.Score.CompareTo(other.BTPlayer.Score);
+            int scoreComparison = other.BTPlayer.Score.CompareTo(BTPlayer.Score);
             if (scoreComparison != 0) return scoreComparison;
             
-            int streakComparison = BTPlayer.Streak.CompareTo(other.BTPlayer.Streak);
+            int streakComparison = other.BTPlayer.Streak.CompareTo(BTPlayer.Streak);
             if (streakComparison != 0) return streakComparison;
             
             return String.Compare(BTPlayer.Name, other.BTPlayer.Name, StringComparison.Ordinal);

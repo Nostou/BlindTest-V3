@@ -68,7 +68,7 @@ namespace Managers
             Score = 0;
             Streak = 0;
             StreakFreeze = GameManager.Instance.GetCurrentSettings().StreakFreeze;
-            MusicCount = 1; //TODO: Try do to without stocking value
+            MusicCount = 1;
         }
 
         public int GetFutureAddScore(ResultType resultType)
