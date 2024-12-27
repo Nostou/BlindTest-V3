@@ -76,6 +76,8 @@ namespace Managers
             if (audioSource.isPlaying) yield return FadeOut(0.0f);
             yield return new WaitForSeconds(waitBuffer);
             
+            if (audioSource.clip) Destroy(audioSource.clip);
+            
             audioSource.clip = DownloadHandlerAudioClip.GetContent(uwr);
             playMusicCoroutine = StartCoroutine(PlayMusic());
         }
