@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7949156250894914812}
   - component: {fileID: 1278680252360805660}
   m_Layer: 5
-  m_Name: ToggleStreak
+  m_Name: ToggleFreeze
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -993,16 +993,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a0f88cf43e8a95468a6897d2274d357, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  txtRank: {fileID: 2630268382675315670}
+  txtName: {fileID: 366480155639496195}
+  txtScore: {fileID: 1108201574391218995}
+  txtStreak: {fileID: 8994303257154112952}
   btnResult: {fileID: 5340293063770203586}
   txtResult: {fileID: 1756514570193242217}
+  toggleFreeze: {fileID: 1278680252360805660}
+  txtFreeze: {fileID: 7153155855601955638}
   colorTexts:
-  - Text: Not found
+  - ResultType: 0
+    Text: Not found
     Color: {r: 0.78431374, g: 0.19607843, b: 0.19607843, a: 1}
-  - Text: Golden
+  - ResultType: 1
+    Text: Golden
     Color: {r: 0.9811321, g: 0.9811321, b: 0.124955505, a: 1}
-  - Text: First
+  - ResultType: 2
+    Text: First
     Color: {r: 0.5190381, g: 1, b: 0.2971698, a: 1}
-  - Text: Second
+  - ResultType: 3
+    Text: Second
     Color: {r: 1, g: 0.5882353, b: 0, a: 1}
 --- !u!1 &7044309945181376374
 GameObject:
@@ -1150,7 +1160,7 @@ GameObject:
   - component: {fileID: 7647093113570798416}
   - component: {fileID: 366480155639496195}
   m_Layer: 5
-  m_Name: TxtPlayer
+  m_Name: TxtName
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Attributes;
 using ScriptableObjects;
+using UI;
 using UnityEngine;
 
 namespace Managers
@@ -57,13 +58,29 @@ namespace Managers
     {
         public string Name;
         public int Score;
+        public int Streak;
+        public int StreakFreeze;
         public int MusicCount;
         
         public BTPlayer(string name)
         {
             Name = name;
             Score = 0;
-            MusicCount = 1;
+            Streak = 0;
+            StreakFreeze = GameManager.Instance.GetCurrentSettings().StreakFreeze;
+            MusicCount = 1; //TODO: Try do to without stocking value
+        }
+
+        public int GetFutureAddScore(ResultType resultType)
+        {
+            BTSettingsSO settings = GameManager.Instance.GetCurrentSettings();
+            float addScore = 0;
+            if (resultType == ResultType.Golden) addScore = settings.ScoreGolden;
+            else if (resultType == ResultType.First) addScore = settings.ScoreFirst;
+            else if (resultType == ResultType.Second) addScore = settings.ScoreSecond;
+
+            if (settings.StreakEnabled) addScore *= 1 + Streak * settings.StreakValue / 100.0f;
+            return (int)addScore;
         }
     }
 }
