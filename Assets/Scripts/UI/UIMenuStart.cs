@@ -4,6 +4,7 @@ using ScriptableObjects;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Utils;
 
 namespace UI
 {
@@ -45,11 +46,6 @@ namespace UI
             FileBrowser.Instance.OnFolderSelected += ResetAll;
         }
 
-        private int GetValue(TMP_InputField inputField)
-        {
-            return int.TryParse(inputField.text, out int value) ? value : 0;
-        }
-
         public void RefreshPlayerList()
         {
             foreach (BTPlayer player in GameManager.Instance.Players)
@@ -80,14 +76,9 @@ namespace UI
             AudioManager.Instance.StartBlindTest();
         }
 
-        public void LockStart(bool state)
-        {
-            btnStart.SetInteractable(!state);
-        }
-
         private void SaveSettings()
         {
-            BTSettingsSO settings = GameManager.Instance.GetCurrentSettings();
+            BTSettings settings = GameManager.Instance.GetCurrentSettings();
             settings.Time = (int)(sliderTime.value * 5) + 10;
             settings.ScoreGolden = GetValue(ifScoreGolden);
             settings.ScoreFirst = GetValue(ifScoreFirst);
@@ -102,8 +93,7 @@ namespace UI
 
         private void ResetSettings()
         {
-            //BTSettingsSO settings = Resources.Load<BTSettingsSO>("BT/DefaultSettings");
-            BTSettingsSO settings = GameManager.Instance.GetDefaultSettings();
+            BTSettings settings = GameManager.Instance.GetDefaultSettings();
             sliderTime.value = (float)(settings.Time - 10) / 5;
             ifScoreGolden.text = settings.ScoreGolden.ToString();
             ifScoreFirst.text = settings.ScoreFirst.ToString();
@@ -133,5 +123,7 @@ namespace UI
             float value = Math.Clamp(GetValue(inputField), minValue, maxValue);
             inputField.text = value.ToString();
         }
+        
+        private int GetValue(TMP_InputField inputField) => int.TryParse(inputField.text, out int value) ? value : 0;
     }
 }

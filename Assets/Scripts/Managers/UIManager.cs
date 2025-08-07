@@ -18,6 +18,8 @@ namespace Managers
         public UIMenuStart GetMenuStart() => uiMenuStart;
         public UIMenuMusic GetMenuMusic() => uiMenuMusic;
         public UIMenuResult GetMenuResult() => uiMenuResult;
+        public UIMenuFinal GetMenuFinal() => uiMenuFinal;
+        public UILoadingScreen GetLoadingScreen() => uiLoadingScreen;
 
         public static UIManager Instance { get; private set; }
 

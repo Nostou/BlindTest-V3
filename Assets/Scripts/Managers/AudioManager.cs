@@ -2,14 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using Attributes;
 using DG.Tweening;
-using Extensions;
-using Unity.VisualScripting;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.Serialization;
-using Random = UnityEngine.Random;
+using Utils;
 
 namespace Managers
 {
@@ -23,16 +20,18 @@ namespace Managers
         
         public float Volume => audioSource.volume;
         public int MusicIndex => currentMusicIndex;
-        public int MusicCount => audioInfos.Count;
-        public AudioInfo CurrentMusic => currentAudioInfo;
+        public int MusicCount => musicList.Count;
+        public Music CurrentMusic => currentMusic;
 
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private float fadeDuration = 0.5f;
         [SerializeField] private float waitBuffer = 0.5f;
-        [SerializeField, ReadOnly] private List<AudioInfo> audioInfos = new List<AudioInfo>();
+        [SerializeField, ReadOnly] private List<Music> musicList = new List<Music>();
 
+        private AudioShuffler shuffler = new AudioShuffler();
+        
         private int currentMusicIndex = -1;
-        private AudioInfo currentAudioInfo;
+        private Music currentMusic;
 
         private Coroutine playMusicCoroutine;
         private bool isPlaying;
@@ -44,32 +43,32 @@ namespace Managers
 
         public void StartBlindTest()
         {
-            ShuffleMusics(GameManager.Instance.GetCurrentSettings().MusicSmartRandom);
+            shuffler.CustomShuffle(musicList);
             NextMusic();
         }
 
         public void NextMusic()
         {
             currentMusicIndex++;
-            currentAudioInfo = audioInfos[currentMusicIndex];
+            currentMusic = musicList[currentMusicIndex];
             StartCoroutine(PrepareMusic());
         }
 
         private IEnumerator PrepareMusic()
         {
-            AudioType audioType = Path.GetExtension(currentAudioInfo.Path) switch
+            AudioType audioType = Path.GetExtension(currentMusic.Path) switch
             {
                 ".mp3" => AudioType.MPEG,
                 ".ogg" => AudioType.OGGVORBIS,
                 _ => AudioType.WAV
             };
             
-            UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip("file://" + currentAudioInfo.Path, audioType);
+            UnityWebRequest uwr = UnityWebRequestMultimedia.GetAudioClip("file://" + currentMusic.Path, audioType);
             yield return uwr.SendWebRequest();
 
             if (uwr.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"Failed to load audio file: {uwr.error}");
+                Debug.LogError($"[AudioManager] Failed to load audio file: {uwr.error}");
                 yield break;
             }
             
@@ -138,116 +137,33 @@ namespace Managers
             audioSource.volume = volume;
         }
         
-        public List<AudioInfo> CreateAudioInfos(string[] audioFiles)
+        public void CreateBT(string[] audioFiles)
         {
-            audioInfos.Clear();
-            
+            musicList.Clear();
+
             foreach (string af in audioFiles)
             {
                 string fileName = Path.GetFileNameWithoutExtension(af);
-                audioInfos.Add(new AudioInfo
+                string playerName = fileName.Split("_")[0];
+                musicList.Add(new Music()
                 {
-                    Author = fileName.Split("_")[0],
+                    Player = GameManager.Instance.GetPlayer(playerName),
                     Title = fileName,
                     Path = af
                 });
             }
         
-            Debug.Log($"[AudioManager] Found {audioInfos.Count} audio files");;
-            return audioInfos;
+            Debug.Log($"[AudioManager] Found {musicList.Count} audio files");
         }
+    }
 
-        private void ShuffleMusics(bool isSmartRandom)
-        {
-            if (!isSmartRandom)
-            {
-                audioInfos.Shuffle();
-                return;
-            }
-
-            List<BTPlayer> players = GameManager.Instance.Players;
-            int nbMusicPerPlayer = audioInfos.Count / players.Count;
-            
-            Dictionary<BTPlayer, List<AudioInfo>> firstHalf = new Dictionary<BTPlayer, List<AudioInfo>>();
-            Dictionary<BTPlayer, List<AudioInfo>> secondHalf = new Dictionary<BTPlayer, List<AudioInfo>>();
-            
-            foreach (BTPlayer player in players)
-            {
-                firstHalf.Add(player, new List<AudioInfo>());
-                secondHalf.Add(player, new List<AudioInfo>());
-            }
-
-            foreach (AudioInfo audioInfo in audioInfos)
-            {
-                BTPlayer player = players.Find(p => p.Name.Equals(audioInfo.Author));
-                if (firstHalf[player].Count < (nbMusicPerPlayer-1)/2) firstHalf[player].Add(audioInfo);
-                else secondHalf[player].Add(audioInfo);
-            }
-            
-            List<AudioInfo> firstList = new List<AudioInfo>();
-            List<AudioInfo> secondList = new List<AudioInfo>();
-            
-            foreach (BTPlayer player in players)
-            {
-                firstList.AddRange(firstHalf[player]);
-                secondList.AddRange(secondHalf[player]);
-            }
-            
-            firstList.Shuffle();
-            secondList.Shuffle();
-            
-            List<AudioInfo> endList = new List<AudioInfo>();
-            foreach (BTPlayer player in players)
-            {
-                for (int i = 0; i < secondList.Count; i++)
-                {
-                    if (secondList[i].Author.Equals(player.Name))
-                    {
-                        endList.Add(secondList[i]);
-                        secondList.RemoveAt(i);
-                        break;
-                    }
-                }
-            }
-            endList.Shuffle();
-            secondList.AddRange(endList);
-            
-            audioInfos.Clear();
-            audioInfos.AddRange(firstList);
-            audioInfos.AddRange(secondList);
-            PreventOccurrencesInARow(audioInfos, 2);
-        }
-
-        private void PreventOccurrencesInARow(List<AudioInfo> audioList, int maxOccurrences)
-        {
-            int consecutiveCount = 1;
-            for (int i = 1; i < audioList.Count; i++) 
-            {
-                if (audioList[i].Author.Equals(audioList[i - 1].Author)) consecutiveCount++;
-                else consecutiveCount = 1;
-
-                if (consecutiveCount <= maxOccurrences) continue;
-                
-                Debug.Log($"[AudioManager] Found more than {maxOccurrences} musics in a row for {audioList[i].Author}");
-
-                for (int j = i + 1; j < audioList.Count; j++)
-                {
-                    if (!audioList[j].Author.Equals(audioList[i].Author))
-                    {
-                        (audioList[i], audioList[j]) = (audioList[j], audioList[i]);
-                        consecutiveCount = 1;
-                        break;
-                    }
-                }
-            }
-        }
-    
-        [Serializable]
-        public class AudioInfo
-        {
-            public string Author; //TODO: Change to BTPlayer
-            public string Title;
-            public string Path;
-        }
+    [Serializable]
+    public class Music
+    {
+        [InlineProperty] public BTPlayer Player;
+        public string Title;
+        public string Path;
+        
+        public string Author => Player.Name;
     }
 }

@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using Attributes;
+using System.IO;
+using System.Linq;
 using ScriptableObjects;
+using Sirenix.OdinInspector;
 using UI;
 using UnityEngine;
+using Utils;
 
 namespace Managers
 {
     public class GameManager : MonoBehaviour
     {
         public List<BTPlayer> Players => players;
-        public BTSettingsSO GetCurrentSettings() => currentSettings;
-        public BTSettingsSO GetDefaultSettings() => defaultSettings;
+        public BTSettings GetCurrentSettings() => currentSettings;
+        public BTSettings GetDefaultSettings() => defaultSettings;
         
         public static GameManager Instance { get; private set; }
 
-        [SerializeField] private BTSettingsSO currentSettings;
-        [SerializeField] private BTSettingsSO defaultSettings;
+        [SerializeField] private BTSettings currentSettings;
+        [SerializeField] private BTSettings defaultSettings;
         [SerializeField, ReadOnly] private List<BTPlayer> players = new List<BTPlayer>();
         
         private void Awake()
@@ -29,26 +32,25 @@ namespace Managers
             FileBrowser.Instance.OnFolderSelected += () => players.Clear();
         }    
         
-        public void RegisterPlayers(List<AudioManager.AudioInfo> audioInfos)
+        public void RegisterPlayers(string[] audioFiles)
         {
-            BTPlayer currentPlayer = CreatePlayer(audioInfos[0].Author);
-            for (int i = 1; i < audioInfos.Count; i++)
+            foreach (string af in audioFiles)
             {
-                if (currentPlayer.Name.Equals(audioInfos[i].Author))
-                {
-                    currentPlayer.MusicCount++;
-                    continue;
-                }
+                string fileName = Path.GetFileNameWithoutExtension(af);
+                string playerName = fileName.Split("_")[0];
                 
-                currentPlayer = CreatePlayer(audioInfos[i].Author);
-                Debug.Log($"[GameManager] Register {currentPlayer.Name}");
+                BTPlayer player = GetPlayer(playerName) ?? CreatePlayer(playerName);
+                player.MusicCount++;
             }
         }
 
+        public BTPlayer GetPlayer(string playerName) => players.FirstOrDefault(p => p.Name.Equals(playerName));
         private BTPlayer CreatePlayer(string playerName)
         {
             BTPlayer player = new BTPlayer(playerName);
             players.Add(player);
+            
+            Debug.Log($"[GameManager] Create {playerName}");
             return player;
         }
     }
@@ -68,12 +70,12 @@ namespace Managers
             Score = 0;
             Streak = 0;
             StreakFreeze = GameManager.Instance.GetCurrentSettings().StreakFreeze;
-            MusicCount = 1;
+            MusicCount = 0;
         }
 
         public int GetFutureAddScore(ResultType resultType)
         {
-            BTSettingsSO settings = GameManager.Instance.GetCurrentSettings();
+            BTSettings settings = GameManager.Instance.GetCurrentSettings();
             float addScore = 0;
             if (resultType == ResultType.Golden) addScore = settings.ScoreGolden;
             else if (resultType == ResultType.First) addScore = settings.ScoreFirst;

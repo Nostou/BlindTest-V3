@@ -1,30 +1,12 @@
 using System;
-using System.Collections.Generic;
 using AYellowpaper.SerializedCollections;
-using DG.Tweening;
 using Managers;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace UI
 {
-    public enum ResultType
-    {
-        NotFound,
-        Golden,
-        First,
-        Second
-    }
-    
-    [Serializable]
-    public class ColorText
-    {
-        public string Text;
-        public Color Color;
-    }
-    
     public class UIPlayerResult : MonoBehaviour, IComparable<UIPlayerResult>
     {
         public BTPlayer BTPlayer { get; set; }
@@ -44,14 +26,20 @@ namespace UI
         private ResultType resultType;
         private bool isAuthor;
 
+        private int maxStreakValue;
+
         private void Start()
         {
+            maxStreakValue = GameManager.Instance.GetCurrentSettings().StreakMax;
+            
             btnResult.onClick.AddListener(() =>
             {
                 resultType++;
                 if ((int)resultType == colorTexts.Count) resultType = 0;
                 OnResultChanged();
             });
+            
+            toggleFreeze.onValueChanged.AddListener(OnStreakFroze);
         }
 
         public void InitUI()
@@ -61,29 +49,46 @@ namespace UI
             
             txtRank.text = $"{transform.GetSiblingIndex() + 1}.";
             txtName.text = BTPlayer.Name;
-            
+            txtName.color = Color.white;
             txtScore.text = $"{BTPlayer.Score}";
             txtScore.color = Color.white;
-            
             txtStreak.text = $"{BTPlayer.Streak}";
-            
-            txtResult.text = colorTexts[resultType].Text;
-            txtResult.color = colorTexts[resultType].Color;
-            txtResult.GetComponent<UIHoverScale>().SetHoverable(true);
-            
-            txtFreeze.text = $"({BTPlayer.StreakFreeze})";
+            UpdateResultUI(colorTexts[resultType]);
             toggleFreeze.interactable = BTPlayer.Streak > 0 && BTPlayer.StreakFreeze > 0;
             toggleFreeze.isOn = false;
+            txtFreeze.text = $"({BTPlayer.StreakFreeze})";
+            SetHover(true);
         }
-        
+
         public void SetAuthor()
         {
             isAuthor = true;
             txtName.color = Color.cyan;
             txtResult.text = "Author";
             txtResult.color = Color.cyan;
-            txtResult.GetComponent<UIHoverScale>().SetHoverable(false);
             toggleFreeze.interactable = false;
+            SetHover(false);
+        }
+        
+        public void RewindUI(ResultType type, bool useFreeze)
+        {
+            resultType = type;
+            OnResultChanged();
+            toggleFreeze.isOn = useFreeze;
+        }
+
+        public void FinalUI()
+        {
+            txtRank.text = $"{transform.GetSiblingIndex() + 1}.";
+            txtName.color = Color.white;
+            txtScore.text = $"{BTPlayer.Score}";
+            txtScore.color = Color.white;
+            txtStreak.text = $"{BTPlayer.Streak}";
+            UpdateResultUI(new ColorText { Text = "-", Color = Color.white });
+            txtFreeze.text = $"({BTPlayer.StreakFreeze})";
+            toggleFreeze.interactable = false;
+            toggleFreeze.isOn = false;
+            SetHover(false);
         }
 
         private void OnResultChanged()
@@ -91,43 +96,57 @@ namespace UI
             int futureScore = BTPlayer.GetFutureAddScore(resultType);
             txtScore.text = futureScore == 0 ? $"{BTPlayer.Score}" : $"{BTPlayer.Score} (+{futureScore})";
             txtScore.color = futureScore == 0 ? Color.white : colorTexts[resultType].Color;
-            
-            txtResult.text = colorTexts[resultType].Text;
-            txtResult.color = colorTexts[resultType].Color;
-            
-            toggleFreeze.interactable = BTPlayer.Streak > 0 && BTPlayer.StreakFreeze > 0 && resultType == 0 && !isAuthor;
+
+            int futureStreak = Mathf.Min(BTPlayer.Streak + (resultType != ResultType.NotFound ? 1 : 0), maxStreakValue);
+            txtStreak.text = $"{futureStreak}";
+
+            UpdateResultUI(colorTexts[resultType]);
+
+            toggleFreeze.interactable = BTPlayer.Streak > 0 && BTPlayer.StreakFreeze > 0 && resultType == ResultType.NotFound && !isAuthor;
             if (resultType != ResultType.NotFound) toggleFreeze.isOn = false;
         }
 
-        public void FinalUI()
+        private void OnStreakFroze(bool newValue)
         {
-            txtRank.text = $"{transform.GetSiblingIndex() + 1}.";
-            
-            txtName.color = Color.white;
-            
-            txtScore.text = $"{BTPlayer.Score}";
-            txtScore.color = Color.white;
-            
-            txtStreak.text = $"{BTPlayer.Streak}";
+            txtFreeze.text = $"({BTPlayer.StreakFreeze + (newValue ? -1 : 0)})";
+        }
 
-            txtResult.text = "-";
-            txtResult.color = Color.white;
-            txtResult.GetComponent<UIHoverScale>().SetHoverable(false);
-            
-            txtFreeze.text = $"({BTPlayer.StreakFreeze})";
-            toggleFreeze.interactable = false;
-            toggleFreeze.isOn = false;
+        private void UpdateResultUI(ColorText ct)
+        {
+            txtResult.text = ct.Text;
+            txtResult.color = ct.Color;
+        }
+
+        private void SetHover(bool enable)
+        {
+            var hover = txtResult.GetComponent<UIHoverScale>();
+            hover.SetHoverable(enable);
         }
 
         public int CompareTo(UIPlayerResult other)
         {
             int scoreComparison = other.BTPlayer.Score.CompareTo(BTPlayer.Score);
             if (scoreComparison != 0) return scoreComparison;
-            
+
             int streakComparison = other.BTPlayer.Streak.CompareTo(BTPlayer.Streak);
             if (streakComparison != 0) return streakComparison;
-            
-            return String.Compare(BTPlayer.Name, other.BTPlayer.Name, StringComparison.Ordinal);
+
+            return string.Compare(BTPlayer.Name, other.BTPlayer.Name, StringComparison.Ordinal);
         }
+    }
+    
+    public enum ResultType
+    {
+        NotFound,
+        Golden,
+        First,
+        Second
+    }
+    
+    [Serializable]
+    public class ColorText
+    {
+        public string Text;
+        public Color Color;
     }
 }

@@ -41,6 +41,5 @@ namespace UI {
             if (button.interactable) OnDoubleClick?.Invoke();
             nbClick = 0;
         }
-
     }
 }

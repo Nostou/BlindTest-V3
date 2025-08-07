@@ -18,6 +18,7 @@ namespace UI
         {
             sliderVolume.value = 15;
             btnConfirm.SetInteractable(true);
+            btnRewind.SetInteractable(false);
             btnNext.SetInteractable(false);
             
             AudioManager am = AudioManager.Instance;
@@ -41,15 +42,19 @@ namespace UI
         private void ConfirmResult()
         {
             uiRankings.ComputeRankings();
-            btnConfirm.SetInteractable(false);
             
             bool endOfGame = AudioManager.Instance.MusicIndex == AudioManager.Instance.MusicCount - 1;
+            btnConfirm.SetInteractable(false);
+            btnRewind.SetInteractable(true);
             btnNext.SetInteractable(!endOfGame);
         }
 
         private void RewindResult()
         {
-            
+            uiRankings.RewindRankings();
+            btnConfirm.SetInteractable(true);
+            btnRewind.SetInteractable(false);
+            btnNext.SetInteractable(false);
         }
     }
 }
